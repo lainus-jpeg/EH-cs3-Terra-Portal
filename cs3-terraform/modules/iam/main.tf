@@ -233,6 +233,25 @@ resource "aws_iam_role_policy_attachment" "github_actions" {
   policy_arn = aws_iam_policy.github_actions.arn
 }
 
+# Grant GitHub Actions role kubectl access to EKS cluster
+resource "aws_eks_access_entry" "github_actions" {
+  cluster_name  = var.eks_cluster_name
+  principal_arn = aws_iam_role.github_actions.arn
+  type          = "STANDARD"
+}
+
+resource "aws_eks_access_policy_association" "github_actions" {
+  cluster_name  = var.eks_cluster_name
+  principal_arn = aws_iam_role.github_actions.arn
+  policy_arn    = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
+
+  access_scope {
+    type = "cluster"
+  }
+
+  depends_on = [aws_eks_access_entry.github_actions]
+}
+
 # ── IAM Groups (Innovatech org hierarchy) ────────────────────────────────────
 resource "aws_iam_group" "management" {
   name = "${var.project}-${var.environment}-management"
@@ -351,4 +370,9 @@ resource "aws_iam_group_policy_attachment" "platform_password" {
 resource "aws_iam_group_policy_attachment" "employees_password" {
   group      = aws_iam_group.employees.name
   policy_arn = aws_iam_policy.self_service_password.arn
+}
+
+variable "eks_cluster_name" {
+  description = "EKS cluster name for GitHub Actions access entry"
+  type        = string
 }

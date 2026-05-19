@@ -83,10 +83,11 @@ module "vpc" {
 module "iam" {
   source = "./modules/iam"
 
-  project     = var.project
-  environment = var.environment
-  github_repo = var.github_repo
-  ecr_arns    = module.ecr.repository_arns
+  project          = var.project
+  environment      = var.environment
+  github_repo      = var.github_repo
+  ecr_arns         = module.ecr.repository_arns
+  eks_cluster_name = module.eks.cluster_name
 }
 
 # ── ECR ───────────────────────────────────────────────────────────────────────
