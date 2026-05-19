@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Innovatech Portal — Login</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:       #0d0f0e;
+      --panel:    #131615;
+      --border:   #1e2420;
+      --green:    #00e676;
+      --green-dim:#00b85a;
+      --text:     #d4dbd6;
+      --muted:    #556b5d;
+      --error:    #ff5252;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'IBM Plex Sans', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    /* grid background */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(var(--border) 1px, transparent 1px),
+        linear-gradient(90deg, var(--border) 1px, transparent 1px);
+      background-size: 40px 40px;
+      opacity: 0.5;
+      pointer-events: none;
+    }
+
+    .card {
+      position: relative;
+      background: var(--panel);
+      border: 1px solid var(--border);
+      width: 380px;
+      padding: 40px;
+      animation: fadeUp .4s ease both;
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: var(--green);
+    }
+
+    .logo {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: .15em;
+      color: var(--green);
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    h1 {
+      font-size: 22px;
+      font-weight: 300;
+      color: var(--text);
+      margin-bottom: 32px;
+      letter-spacing: -.01em;
+    }
+
+    label {
+      display: block;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 10px;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+
+    input {
+      width: 100%;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 13px;
+      padding: 10px 12px;
+      outline: none;
+      transition: border-color .15s;
+      margin-bottom: 20px;
+    }
+
+    input:focus { border-color: var(--green); }
+
+    button {
+      width: 100%;
+      background: var(--green);
+      color: #000;
+      border: none;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      padding: 13px;
+      cursor: pointer;
+      transition: background .15s;
+      margin-top: 4px;
+    }
+
+    button:hover { background: var(--green-dim); }
+    button:disabled { opacity: .4; cursor: not-allowed; }
+
+    .error {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px;
+      color: var(--error);
+      margin-top: 14px;
+      display: none;
+    }
+
+    .hint {
+      font-size: 11px;
+      color: var(--muted);
+      margin-top: 24px;
+      font-family: 'IBM Plex Mono', monospace;
+      border-top: 1px solid var(--border);
+      padding-top: 16px;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo">Innovatech Solutions</div>
+    <h1>Employee Portal</h1>
+
+    <label for="email">Email address</label>
+    <input type="email" id="email" placeholder="you@innovatech.local" autocomplete="email"/>
+
+    <label for="password">Password</label>
+    <input type="password" id="password" placeholder="••••••••" autocomplete="current-password"/>
+
+    <button id="loginBtn" onclick="login()">Sign in</button>
+    <div class="error" id="errMsg"></div>
+
+    <div class="hint">Default admin: admin@innovatech.local / admin123</div>
+  </div>
+
+  <script>
+    const API = '/v1';
+
+    // If already logged in, redirect
+    if (localStorage.getItem('token')) {
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      window.location.href = user.is_admin ? 'admin.html' : 'employee.html';
+    }
+
+    async function login() {
+      const email    = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+      const btn      = document.getElementById('loginBtn');
+      const err      = document.getElementById('errMsg');
+
+      err.style.display = 'none';
+      if (!email || !password) { showError('Fill in both fields.'); return; }
+
+      btn.disabled = true;
+      btn.textContent = 'Signing in...';
+
+      try {
+        const res  = await fetch(`${API}/auth/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password }),
+        });
+        const data = await res.json();
+
+        if (!res.ok) { showError(data.error || 'Login failed'); return; }
+
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('user', JSON.stringify(data.employee));
+
+        window.location.href = data.employee.is_admin ? 'admin.html' : 'employee.html';
+      } catch {
+        showError('Cannot reach server. Is it running?');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Sign in';
+      }
+    }
+
+    function showError(msg) {
+      const err = document.getElementById('errMsg');
+      err.textContent = msg;
+      err.style.display = 'block';
+    }
+
+    // Allow Enter key
+    document.addEventListener('keydown', e => { if (e.key === 'Enter') login(); });
+  </script>
+</body>
+</html>

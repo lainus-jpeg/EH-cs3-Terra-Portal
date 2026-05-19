@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Innovatech Portal — IT Ops Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0d0f0e; --panel: #131615; --border: #1e2420;
+      --green: #00e676; --green-dim: #00b85a;
+      --text: #d4dbd6; --muted: #556b5d; --error: #ff5252; --amber: #ffb300;
+    }
+    body { background: var(--bg); color: var(--text); font-family: 'IBM Plex Sans', sans-serif; min-height: 100vh; }
+    body::before {
+      content: ''; position: fixed; inset: 0;
+      background-image: linear-gradient(var(--border) 1px, transparent 1px), linear-gradient(90deg, var(--border) 1px, transparent 1px);
+      background-size: 40px 40px; opacity: 0.3; pointer-events: none; z-index: 0;
+    }
+
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      background: var(--panel); border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 32px; height: 52px;
+    }
+    .nav-logo { font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 600; letter-spacing: .15em; color: var(--green); text-transform: uppercase; }
+    .nav-right { display: flex; align-items: center; gap: 16px; }
+    .nav-badge { font-family: 'IBM Plex Mono', monospace; font-size: 10px; color: #000; background: var(--green); padding: 3px 8px; letter-spacing: .1em; text-transform: uppercase; }
+    .nav-user { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--muted); }
+    .logout-btn { background: none; border: 1px solid var(--border); color: var(--muted); font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: .1em; text-transform: uppercase; padding: 5px 10px; cursor: pointer; transition: all .15s; }
+    .logout-btn:hover { border-color: var(--error); color: var(--error); }
+
+    /* TABS */
+    .tabs { position: relative; z-index: 1; display: flex; border-bottom: 1px solid var(--border); background: var(--panel); padding: 0 32px; }
+    .tab { font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); padding: 14px 20px; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; transition: all .15s; }
+    .tab:hover { color: var(--text); }
+    .tab.active { color: var(--green); border-bottom-color: var(--green); }
+
+    main { position: relative; z-index: 1; max-width: 1100px; margin: 0 auto; padding: 36px 24px; }
+
+    .tab-panel { display: none; animation: fadeUp .25s ease both; }
+    .tab-panel.active { display: block; }
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* STATS ROW */
+    .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 32px; }
+    .stat { background: var(--panel); border: 1px solid var(--border); padding: 20px; }
+    .stat-label { font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
+    .stat-value { font-size: 28px; font-weight: 300; color: var(--green); }
+
+    /* SECTION TITLE */
+    .section-title { font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 600; letter-spacing: .15em; text-transform: uppercase; color: var(--green); margin-bottom: 16px; display: flex; align-items: center; gap: 10px; }
+    .section-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+    /* TABLES */
+    .table-wrap { background: var(--panel); border: 1px solid var(--border); overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; }
+    th { font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); text-align: left; padding: 12px 16px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+    td { padding: 11px 16px; font-size: 13px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(0,230,118,.03); }
+
+    .status-badge { display: inline-block; font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: .08em; text-transform: uppercase; padding: 2px 7px; border: 1px solid; }
+    .status-active    { color: var(--green); border-color: var(--green); }
+    .status-pending   { color: var(--amber); border-color: var(--amber); }
+    .status-suspended, .status-offboarded { color: var(--error); border-color: var(--error); }
+    .rs-open        { color: var(--amber);  }
+    .rs-in_progress { color: var(--green);  }
+    .rs-resolved    { color: var(--muted);  }
+    .rs-rejected    { color: var(--error);  }
+
+    /* BUTTONS */
+    .btn { background: var(--green); color: #000; border: none; font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; padding: 8px 14px; cursor: pointer; transition: background .15s; }
+    .btn:hover { background: var(--green-dim); }
+    .btn:disabled { opacity: .4; cursor: not-allowed; }
+    .btn-danger { background: transparent; color: var(--error); border: 1px solid var(--error); font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: .08em; text-transform: uppercase; padding: 5px 10px; cursor: pointer; transition: all .15s; }
+    .btn-danger:hover { background: var(--error); color: #000; }
+    .btn-ghost { background: transparent; color: var(--muted); border: 1px solid var(--border); font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: .08em; text-transform: uppercase; padding: 5px 10px; cursor: pointer; transition: all .15s; }
+    .btn-ghost:hover { border-color: var(--green); color: var(--green); }
+    .action-btns { display: flex; gap: 6px; }
+
+    /* ADD EMPLOYEE FORM */
+    .add-form { background: var(--panel); border: 1px solid var(--border); padding: 24px; margin-bottom: 32px; }
+    .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 16px; }
+    label { display: block; font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin-bottom: 5px; }
+    input, select { width: 100%; background: var(--bg); border: 1px solid var(--border); color: var(--text); font-family: 'IBM Plex Mono', monospace; font-size: 12px; padding: 9px 12px; outline: none; transition: border-color .15s; }
+    input:focus, select:focus { border-color: var(--green); }
+
+    .empty { padding: 32px; text-align: center; font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--muted); }
+    .mono { font-family: 'IBM Plex Mono', monospace; font-size: 11px; }
+    .toast { position: fixed; bottom: 24px; right: 24px; background: var(--green); color: #000; font-family: 'IBM Plex Mono', monospace; font-size: 12px; padding: 12px 20px; font-weight: 600; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 200; }
+    .toast.show { opacity: 1; }
+
+    /* request status select */
+    .req-select { background: var(--bg); border: 1px solid var(--border); color: var(--text); font-family: 'IBM Plex Mono', monospace; font-size: 11px; padding: 4px 8px; cursor: pointer; }
+
+    .eye-btn { cursor: pointer; font-size: 15px; padding: 3px 6px; opacity: 0.6; transition: opacity .15s; user-select: none; }
+    .eye-btn:hover { opacity: 1; }
+
+    /* CREDS MODAL */
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.7); z-index: 300; display: flex; align-items: center; justify-content: center; }
+    .modal-box { background: var(--panel); border: 1px solid var(--green); padding: 28px 32px; min-width: 340px; font-family: 'IBM Plex Mono', monospace; position: relative; }
+    .modal-title { font-size: 11px; font-weight: 600; letter-spacing: .15em; text-transform: uppercase; color: var(--green); margin-bottom: 20px; }
+    .modal-row { margin-bottom: 14px; }
+    .modal-label { font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+    .modal-val { background: var(--bg); border: 1px solid var(--border); padding: 8px 12px; font-size: 13px; color: var(--text); display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+    .modal-val span { flex: 1; word-break: break-all; }
+    .copy-btn { background: none; border: 1px solid var(--border); color: var(--muted); font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: .08em; text-transform: uppercase; padding: 3px 8px; cursor: pointer; white-space: nowrap; transition: all .15s; flex-shrink: 0; }
+    .copy-btn:hover { border-color: var(--green); color: var(--green); }
+    .modal-warn { font-size: 10px; color: var(--amber); margin-top: 16px; line-height: 1.5; }
+    .modal-close { position: absolute; top: 12px; right: 14px; background: none; border: none; color: var(--muted); font-size: 18px; cursor: pointer; line-height: 1; }
+    .modal-close:hover { color: var(--error); }
+  </style>
+</head>
+<body>
+  <nav>
+    <div class="nav-logo">Innovatech Portal</div>
+    <div class="nav-right">
+      <span class="nav-badge">IT Ops Admin</span>
+      <span class="nav-user" id="navName">—</span>
+      <button class="logout-btn" onclick="logout()">Sign out</button>
+    </div>
+  </nav>
+
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('employees')">Employees</div>
+    <div class="tab" onclick="switchTab('requests')">IT Requests</div>
+    <div class="tab" onclick="switchTab('devices')">Devices</div>
+    <div class="tab" onclick="switchTab('monitoring')">Monitoring</div>
+  </div>
+
+  <main>
+    <!-- ── EMPLOYEES TAB ── -->
+    <div class="tab-panel active" id="tab-employees">
+      <!-- Stats -->
+      <div class="stats">
+        <div class="stat"><div class="stat-label">Total</div><div class="stat-value" id="statTotal">—</div></div>
+        <div class="stat"><div class="stat-label">Active</div><div class="stat-value" id="statActive">—</div></div>
+        <div class="stat"><div class="stat-label">Pending</div><div class="stat-value" id="statPending">—</div></div>
+        <div class="stat"><div class="stat-label">Offboarded</div><div class="stat-value" id="statOff">—</div></div>
+      </div>
+
+      <!-- Add Employee -->
+      <div class="section-title">Onboard New Employee</div>
+      <div class="add-form">
+        <div class="form-grid">
+          <div><label>Full Name</label><input id="fName" placeholder="Jane Doe"/></div>
+          <div><label>Email</label><input id="fEmail" type="email" placeholder="jane@innovatech.local"/></div>
+          <div><label>Department</label><input id="fDept" placeholder="Engineering"/></div>
+          <div>
+            <label>Role</label>
+            <select id="fRole">
+              <option value="employee">Employee</option>
+              <option value="developer">Developer</option>
+              <option value="it_ops">IT Operations</option>
+              <option value="security">Security</option>
+              <option value="manager">Manager</option>
+              <option value="sales_rep">Sales Rep</option>
+            </select>
+          </div>
+        </div>
+        <button class="btn" onclick="addEmployee()">Add Employee</button>
+      </div>
+
+      <!-- Employee Table -->
+      <div class="section-title">All Employees</div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Name</th><th>Email</th><th>Department</th><th>Role</th><th>Status</th><th>Actions</th></tr>
+          </thead>
+          <tbody id="employeesBody">
+            <tr><td colspan="6" class="empty">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── REQUESTS TAB ── -->
+    <div class="tab-panel" id="tab-requests">
+      <div class="section-title">All IT Requests</div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Employee</th><th>Type</th><th>Description</th><th>Status</th><th>Date</th><th>Update</th></tr>
+          </thead>
+          <tbody id="requestsBody">
+            <tr><td colspan="6" class="empty">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+    <!-- ── DEVICES TAB ── -->
+    <div class="tab-panel" id="tab-devices">
+
+      <!-- Register Device Form -->
+      <div class="section-title">Register Device</div>
+      <div class="add-form">
+        <div class="form-grid">
+          <div>
+            <label>Employee</label>
+            <select id="dEmployee"><option value="">— select employee —</option></select>
+          </div>
+          <div><label>Device Name</label><input id="dName" placeholder="Jane's MacBook Pro"/></div>
+          <div>
+            <label>Device Type</label>
+            <select id="dType">
+              <option value="laptop">Laptop</option>
+              <option value="desktop">Desktop</option>
+              <option value="workstation">Workstation</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div><label>Serial Number</label><input id="dSerial" placeholder="C02XG2JHJGH5"/></div>
+          <div><label>Operating System</label><input id="dOS" placeholder="macOS 14 / Windows 11"/></div>
+        </div>
+        <button class="btn" onclick="registerDevice()">Register &amp; Generate SSM Activation</button>
+      </div>
+
+      <!-- Device Table -->
+      <div class="section-title">All Devices</div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Device</th>
+              <th>Employee</th>
+              <th>Type</th>
+              <th>OS</th>
+              <th>SSM Activation ID</th>
+              <th>SSM Instance</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="devicesBody">
+            <tr><td colspan="8" class="empty">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── MONITORING TAB ── -->
+    <div class="tab-panel" id="tab-monitoring">
+      <div class="section-title">Monitoring & Observability</div>
+
+      <!-- Grafana -->
+      <div style="background:var(--panel);border:1px solid var(--border);padding:24px;margin-bottom:16px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;">
+          <div>
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:var(--text);margin-bottom:6px;">Grafana Dashboard</div>
+            <div style="font-size:13px;color:var(--muted);max-width:500px;">Visualise Kubernetes cluster metrics, pod health, request rates, and application performance. Requires Grafana to be deployed via Terraform.</div>
+          </div>
+          <button class="btn" onclick="openGrafana()">Open Grafana</button>
+        </div>
+        <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border);font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);">
+          ENDPOINT: <span style="color:var(--green);">localhost:3001 (port-forward active)</span>
+        </div>
+      </div>
+
+      <!-- Prometheus -->
+      <div style="background:var(--panel);border:1px solid var(--border);padding:24px;margin-bottom:16px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;">
+          <div>
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:var(--text);margin-bottom:6px;">Prometheus</div>
+            <div style="font-size:13px;color:var(--muted);max-width:500px;">Raw metrics collection from Kubernetes nodes, pods, and services. Internal access only via backend proxy.</div>
+          </div>
+          <button class="btn" onclick="openPrometheus()">Open Prometheus</button>
+        </div>
+        <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border);font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);">
+          ENDPOINT: <span style="color:var(--green);">localhost:9090 (port-forward active)</span>
+        </div>
+      </div>
+
+      <!-- CloudWatch -->
+      <div style="background:var(--panel);border:1px solid var(--border);padding:24px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:16px;">
+          <div>
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:var(--text);margin-bottom:6px;">AWS CloudWatch</div>
+            <div style="font-size:13px;color:var(--muted);max-width:500px;">AWS infrastructure logs, RDS metrics, EKS control plane logs, cost and billing alerts. Accessed directly via AWS Console.</div>
+          </div>
+          <button class="btn" onclick="window.open('https://console.aws.amazon.com/cloudwatch','_blank')">Open AWS Console</button>
+        </div>
+        <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border);font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);">
+          ACCESS: <span style="color:var(--green);">via AWS Console — IAM role required</span>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const API   = '/v1';
+    const token = localStorage.getItem('token');
+    const user  = JSON.parse(localStorage.getItem('user') || 'null');
+
+    if (!token || !user) window.location.href = 'index.html';
+    if (!user?.is_admin)  window.location.href = 'employee.html';
+
+    document.getElementById('navName').textContent = user?.name || '—';
+
+    // In-memory store for temp passwords (cleared on page reload)
+    const tempPasswords = {};
+
+    async function apiFetch(path, opts = {}) {
+      const res = await fetch(API + path, {
+        ...opts,
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json', ...(opts.headers || {}) },
+      });
+      if (res.status === 401) { logout(); return null; }
+      return res.json();
+    }
+
+    // ── TAB SWITCHING ─────────────────────────────────────────────────────────
+    function switchTab(name) {
+      const tabs = ['employees','requests','devices','monitoring'];
+      document.querySelectorAll('.tab').forEach((t, i) => {
+        t.classList.toggle('active', tabs[i] === name);
+      });
+      document.querySelectorAll('.tab-panel').forEach(p => {
+        p.classList.toggle('active', p.id === `tab-${name}`);
+      });
+      if (name === 'requests') loadRequests();
+      if (name === 'devices')  { loadDevices(); populateEmployeeDropdown(); }
+    }
+
+    // ── MONITORING ────────────────────────────────────────────────────────────
+    // These functions proxy through the backend so JWT is checked server-side.
+    // When Grafana/Prometheus are deployed, set their URLs in backend .env and
+    // add proxy routes: GET /v1/monitoring/grafana and /v1/monitoring/prometheus
+    async function openGrafana() {
+      window.open('http://localhost:3001', '_blank');
+    }
+
+    async function openPrometheus() {
+      window.open('http://localhost:9090', '_blank');
+    }
+
+    // ── EMPLOYEES ─────────────────────────────────────────────────────────────
+    async function loadEmployees() {
+      const data = await apiFetch('/employees');
+      if (!data) return;
+
+      // Stats
+      document.getElementById('statTotal').textContent   = data.length;
+      document.getElementById('statActive').textContent  = data.filter(e => e.status === 'active').length;
+      document.getElementById('statPending').textContent = data.filter(e => e.status === 'pending').length;
+      document.getElementById('statOff').textContent     = data.filter(e => e.status === 'offboarded').length;
+
+      const tbody = document.getElementById('employeesBody');
+      if (data.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="empty">No employees yet.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = data.map(e => `
+        <tr>
+          <td>${e.name}</td>
+          <td class="mono">${e.email}</td>
+          <td>${e.department || '—'}</td>
+          <td class="mono" style="font-size:11px">${e.role || '—'}</td>
+          <td><span class="status-badge status-${e.status}">${e.status}</span></td>
+          <td>
+            <div class="action-btns">
+              ${e.status !== 'active' && !e.is_admin
+                ? `<button class="btn-ghost" onclick="onboard('${e.employee_id}')">Onboard</button>`
+                : ''}
+              ${e.status === 'active' && !e.is_admin
+                ? `<button class="btn-danger" onclick="offboard('${e.employee_id}')">Offboard</button>`
+                : ''}
+              ${tempPasswords[e.employee_id]
+                ? `<span class="eye-btn" onclick="showTempPass('${e.employee_id}')" title="View credentials">👁</span>`
+                : ''}
+              ${e.is_admin ? '<span style="font-family:\'IBM Plex Mono\',monospace;font-size:10px;color:var(--muted)">admin</span>' : ''}
+            </div>
+          </td>
+        </tr>`).join('');
+    }
+
+    async function addEmployee() {
+      const name = document.getElementById('fName').value.trim();
+      const email = document.getElementById('fEmail').value.trim();
+      const department = document.getElementById('fDept').value.trim();
+      const role = document.getElementById('fRole').value;
+
+      if (!name || !email || !department) {
+        showToast('Fill in all fields'); return;
+      }
+
+      const data = await apiFetch('/employees', {
+        method: 'POST',
+        body: JSON.stringify({ name, email, department, role }),
+      });
+
+      if (data?.employee_id) {
+        // Store portal temp password — shown in credentials modal after onboard
+        if (data.temp_portal_password) {
+          tempPasswords[data.employee_id] = { portal_password: data.temp_portal_password };
+        }
+        ['fName','fEmail','fDept'].forEach(id => document.getElementById(id).value = '');
+        showToast(`${name} added — click Onboard to provision AWS access`);
+        loadEmployees();
+      } else {
+        showToast(data?.error || 'Error creating employee');
+      }
+    }
+
+    async function onboard(id) {
+      const data = await apiFetch(`/employees/${id}/onboard`, { method: 'POST' });
+      if (!data) return;
+      if (data.error) { showToast(`Error: ${data.error}`); return; }
+
+      if (data.iam_error) {
+        showToast(`⚠️ DB updated but AWS failed: ${data.iam_error}`);
+      } else if (data.iam?.success && data.iam?.temp_password) {
+        tempPasswords[id] = {
+          ...( tempPasswords[id] || {} ),
+          username: data.iam.iam_username,
+          password: data.iam.temp_password,
+          group:    data.iam.group,
+        };
+        showToast(`✅ ${data.employee.name} onboarded — click 👁 to view credentials`);
+      } else {
+        showToast('Employee activated');
+      }
+      loadEmployees();
+    }
+
+    function showTempPass(id) {
+      const p = tempPasswords[id];
+      if (!p) return;
+      document.getElementById('credsUser').textContent       = p.username || '—';
+      document.getElementById('credsPass').textContent       = p.password || '—';
+      document.getElementById('credsPortalPass').textContent = p.portal_password || '—';
+      document.getElementById('credsModal').style.display = 'flex';
+    }
+
+    function closeCredsModal() {
+      document.getElementById('credsModal').style.display = 'none';
+    }
+
+    function copyVal(elId) {
+      const text = document.getElementById(elId).textContent;
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(() => showToast('Copied!'));
+      } else {
+        const el = document.createElement('textarea');
+        el.value = text; el.style.position = 'fixed'; el.style.opacity = '0';
+        document.body.appendChild(el); el.select();
+        document.execCommand('copy');
+        document.body.removeChild(el);
+        showToast('Copied!');
+      }
+    }
+
+    async function offboard(id) {
+      if (!confirm('Offboard this employee? Their AWS access will be revoked.')) return;
+      const data = await apiFetch(`/employees/${id}/offboard`, { method: 'POST' });
+      if (!data) return;
+      if (data.error) { showToast(`Error: ${data.error}`); return; }
+
+      if (data.iam_error) {
+        showToast(`⚠️ DB updated but AWS failed: ${data.iam_error}`);
+      } else {
+        showToast('Employee offboarded — AWS access revoked');
+      }
+      loadEmployees();
+    }
+
+    // ── REQUESTS ──────────────────────────────────────────────────────────────
+    async function loadRequests() {
+      const data = await apiFetch('/requests');
+      const tbody = document.getElementById('requestsBody');
+      if (!data || data.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="empty">No requests yet.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = data.map(r => `
+        <tr>
+          <td>${r.employee_name || '—'}<br><span class="mono" style="color:var(--muted);font-size:10px">${r.employee_email || ''}</span></td>
+          <td class="mono" style="color:var(--green);font-size:11px">${r.type.replace('_',' ')}</td>
+          <td style="max-width:220px;font-size:12px">${r.description || '—'}</td>
+          <td><span class="mono rs-${r.status}">${r.status.replace('_',' ')}</span></td>
+          <td class="mono" style="color:var(--muted);font-size:10px">${new Date(r.created_at).toLocaleDateString()}</td>
+          <td>
+            <div class="action-btns">
+              <select class="req-select" onchange="updateRequest('${r.request_id}', this.value)">
+                <option value="open"        ${r.status==='open'        ?'selected':''}>Open</option>
+                <option value="in_progress" ${r.status==='in_progress' ?'selected':''}>In Progress</option>
+                <option value="resolved"    ${r.status==='resolved'    ?'selected':''}>Resolved</option>
+                <option value="rejected"    ${r.status==='rejected'    ?'selected':''}>Rejected</option>
+              </select>
+              ${r.type === 'password_reset' && r.status !== 'resolved' && r.status !== 'rejected'
+                ? `<button class="btn-ghost" onclick="resetEmployeePassword('${r.employee_id}', '${r.request_id}')">Reset PW</button>`
+                : ''}
+            </div>
+          </td>
+        </tr>`).join('');
+    }
+
+    async function updateRequest(id, status) {
+      const data = await apiFetch(`/requests/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify({ status }),
+      });
+      if (data?.request_id) { showToast('Request updated'); loadRequests(); }
+    }
+
+    async function resetEmployeePassword(employeeId, requestId) {
+      const newPassword = prompt('Enter new password for this employee:');
+      if (!newPassword) return;
+      if (newPassword.length < 6) { showToast('Password must be at least 6 characters'); return; }
+
+      const data = await apiFetch(`/employees/${employeeId}/reset-password`, {
+        method: 'POST',
+        body: JSON.stringify({ new_password: newPassword }),
+      });
+      if (data?.message) {
+        await apiFetch(`/requests/${requestId}`, {
+          method: 'PUT',
+          body: JSON.stringify({ status: 'resolved' }),
+        });
+        showToast(`✅ Password reset for ${data.email}`);
+        loadRequests();
+      } else {
+        showToast(data?.error || 'Failed to reset password');
+      }
+    }
+
+    // ── DEVICES ───────────────────────────────────────────────────────────────
+    async function populateEmployeeDropdown() {
+      const data = await apiFetch('/employees');
+      if (!data) return;
+      const sel = document.getElementById('dEmployee');
+      const active = data.filter(e => e.status === 'active' && !e.is_admin);
+      sel.innerHTML = '<option value="">— select employee —</option>' +
+        active.map(e => `<option value="${e.employee_id}">${e.name} (${e.role})</option>`).join('');
+    }
+
+    async function loadDevices() {
+      const data = await apiFetch('/devices');
+      const tbody = document.getElementById('devicesBody');
+      if (!data || data.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" class="empty">No devices registered yet.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = data.map(d => `
+        <tr>
+          <td><strong>${d.device_name}</strong><br>
+            <span class="mono" style="color:var(--muted);font-size:10px">${d.serial_number || '—'}</span>
+          </td>
+          <td>${d.employee_name || '—'}<br>
+            <span class="mono" style="color:var(--muted);font-size:10px">${d.employee_email || ''}</span>
+          </td>
+          <td class="mono" style="font-size:11px">${d.device_type}</td>
+          <td style="font-size:12px">${d.os || '—'}</td>
+          <td class="mono" style="font-size:10px;color:var(--amber)">${d.ssm_activation_id || '—'}</td>
+          <td class="mono" style="font-size:10px;color:var(--green)">${d.ssm_instance_id || 'not enrolled'}</td>
+          <td><span class="status-badge ${ssmStatusClass(d.ssm_status)}">${d.ssm_status.replace(/_/g,' ')}</span></td>
+          <td>
+            <div class="action-btns">
+              ${!d.ssm_instance_id
+                ? `<button class="btn-ghost" onclick="setInstance('${d.device_id}')">Set mi-id</button>`
+                : ''}
+              <button class="btn-danger" onclick="deregisterDevice('${d.device_id}','${d.device_name.replace(/'/g,"\\'")}')">Remove</button>
+            </div>
+          </td>
+        </tr>`).join('');
+    }
+
+    function ssmStatusClass(s) {
+      if (s === 'online')            return 'status-active';
+      if (s === 'offline')           return 'status-suspended';
+      if (s === 'deregistered')      return 'status-offboarded';
+      return 'status-pending'; // pending_enrollment
+    }
+
+    async function registerDevice() {
+      const employee_id   = document.getElementById('dEmployee').value;
+      const device_name   = document.getElementById('dName').value.trim();
+      const device_type   = document.getElementById('dType').value;
+      const serial_number = document.getElementById('dSerial').value.trim();
+      const os            = document.getElementById('dOS').value.trim();
+
+      if (!employee_id || !device_name) {
+        showToast('Select an employee and enter a device name'); return;
+      }
+
+      const data = await apiFetch('/devices', {
+        method: 'POST',
+        body: JSON.stringify({ employee_id, device_name, device_type,
+                               serial_number: serial_number || undefined,
+                               os: os || undefined }),
+      });
+
+      if (data?.device) {
+        const act = data.ssm_activation;
+        // Show activation details in the credentials modal style
+        document.getElementById('ssmActId').textContent   = act.activation_id;
+        document.getElementById('ssmActCode').textContent = act.activation_code;
+        document.getElementById('ssmActDevice').textContent = data.device.device_name;
+        document.getElementById('ssmModal').style.display = 'flex';
+        ['dName','dSerial','dOS'].forEach(id => document.getElementById(id).value = '');
+        loadDevices();
+      } else {
+        showToast(data?.error || 'Failed to register device');
+      }
+    }
+
+    function closeSsmModal() {
+      document.getElementById('ssmModal').style.display = 'none';
+    }
+
+    function copySsmVal(elId) {
+      const text = document.getElementById(elId).textContent;
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(() => showToast('Copied!'));
+      } else {
+        const el = document.createElement('textarea');
+        el.value = text; el.style.position = 'fixed'; el.style.opacity = '0';
+        document.body.appendChild(el); el.select();
+        document.execCommand('copy');
+        document.body.removeChild(el);
+        showToast('Copied!');
+      }
+    }
+
+    async function setInstance(deviceId) {
+      const instanceId = prompt('Enter SSM Instance ID (mi-xxxxxxxxxxxxxxxxx):');
+      if (!instanceId || !instanceId.startsWith('mi-')) {
+        showToast('Invalid — must start with mi-'); return;
+      }
+      const data = await apiFetch(`/devices/${deviceId}/instance`, {
+        method: 'PATCH',
+        body: JSON.stringify({ ssm_instance_id: instanceId }),
+      });
+      if (data?.device_id) { showToast('Device updated'); loadDevices(); }
+      else showToast(data?.error || 'Failed to update');
+    }
+
+    async function deregisterDevice(id, name) {
+      if (!confirm(`Remove device "${name}" from SSM and the portal?`)) return;
+      const data = await apiFetch(`/devices/${id}`, { method: 'DELETE' });
+      if (data?.message) { showToast('Device removed'); loadDevices(); }
+      else showToast(data?.error || 'Failed to remove');
+    }
+
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 2500);
+    }
+
+    function logout() { localStorage.clear(); window.location.href = 'index.html'; }
+
+    loadEmployees();
+  </script>
+
+  <!-- CREDS MODAL -->
+  <div class="modal-overlay" id="credsModal" style="display:none" onclick="if(event.target===this)closeCredsModal()">
+    <div class="modal-box">
+      <button class="modal-close" onclick="closeCredsModal()">×</button>
+      <div class="modal-title">AWS Credentials</div>
+      <div class="modal-row">
+        <div class="modal-label">Portal Password</div>
+        <div class="modal-val"><span id="credsPortalPass"></span><button class="copy-btn" onclick="copyVal('credsPortalPass')">Copy</button></div>
+      </div>
+      <div class="modal-row">
+        <div class="modal-label">IAM Username</div>
+        <div class="modal-val"><span id="credsUser"></span><button class="copy-btn" onclick="copyVal('credsUser')">Copy</button></div>
+      </div>
+      <div class="modal-row">
+        <div class="modal-label">Temporary Password</div>
+        <div class="modal-val"><span id="credsPass"></span><button class="copy-btn" onclick="copyVal('credsPass')">Copy</button></div>
+      </div>
+      <div class="modal-warn">⚠️ Share securely. Employee uses the Portal Password to log into this portal.<br>AWS credentials require a password reset on first AWS Console login.<br>These credentials are only available this session.</div>
+    </div>
+  </div>
+  <!-- SSM ACTIVATION MODAL -->
+  <div class="modal-overlay" id="ssmModal" style="display:none" onclick="if(event.target===this)closeSsmModal()">
+    <div class="modal-box" style="min-width:420px">
+      <button class="modal-close" onclick="closeSsmModal()">×</button>
+      <div class="modal-title">SSM Enrollment Instructions</div>
+      <div class="modal-row">
+        <div class="modal-label">Device</div>
+        <div class="modal-val"><span id="ssmActDevice"></span></div>
+      </div>
+      <div class="modal-row">
+        <div class="modal-label">Activation ID</div>
+        <div class="modal-val"><span id="ssmActId"></span><button class="copy-btn" onclick="copySsmVal('ssmActId')">Copy</button></div>
+      </div>
+      <div class="modal-row">
+        <div class="modal-label">Activation Code</div>
+        <div class="modal-val"><span id="ssmActCode"></span><button class="copy-btn" onclick="copySsmVal('ssmActCode')">Copy</button></div>
+      </div>
+      <div class="modal-warn" style="margin-top:16px;line-height:1.8">
+        Run this on the employee's machine:<br>
+        <span style="color:var(--green);font-size:11px">
+          aws ssm register-agent \<br>
+          &nbsp;&nbsp;--activation-id &lt;ID above&gt; \<br>
+          &nbsp;&nbsp;--activation-code &lt;Code above&gt; \<br>
+          &nbsp;&nbsp;--region eu-central-1
+        </span><br><br>
+        ⚠️ Single-use activation. Once enrolled, enter the mi-xxxx ID via "Set mi-id".
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>

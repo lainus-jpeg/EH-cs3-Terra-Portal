@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Innovatech Portal — My Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0d0f0e; --panel: #131615; --border: #1e2420;
+      --green: #00e676; --green-dim: #00b85a;
+      --text: #d4dbd6; --muted: #556b5d; --error: #ff5252;
+      --amber: #ffb300;
+    }
+    body { background: var(--bg); color: var(--text); font-family: 'IBM Plex Sans', sans-serif; min-height: 100vh; }
+    body::before {
+      content: ''; position: fixed; inset: 0;
+      background-image: linear-gradient(var(--border) 1px, transparent 1px), linear-gradient(90deg, var(--border) 1px, transparent 1px);
+      background-size: 40px 40px; opacity: 0.3; pointer-events: none; z-index: 0;
+    }
+
+    /* NAV */
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      background: var(--panel); border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 32px; height: 52px;
+    }
+    .nav-logo { font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 600; letter-spacing: .15em; color: var(--green); text-transform: uppercase; }
+    .nav-user { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--muted); display: flex; align-items: center; gap: 16px; }
+    .nav-user span { color: var(--text); }
+    .logout-btn { background: none; border: 1px solid var(--border); color: var(--muted); font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: .1em; text-transform: uppercase; padding: 5px 10px; cursor: pointer; transition: all .15s; }
+    .logout-btn:hover { border-color: var(--error); color: var(--error); }
+
+    /* LAYOUT */
+    main { position: relative; z-index: 1; max-width: 900px; margin: 0 auto; padding: 40px 24px; }
+
+    .page-title { font-size: 26px; font-weight: 300; margin-bottom: 4px; }
+    .page-sub { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--muted); margin-bottom: 36px; }
+
+    /* PROFILE CARD */
+    .profile-card {
+      background: var(--panel); border: 1px solid var(--border);
+      padding: 24px; margin-bottom: 32px;
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 20px;
+      animation: fadeUp .3s ease both;
+    }
+    .profile-card::before { content: ''; display: block; grid-column: 1/-1; height: 2px; background: var(--green); margin-bottom: 4px; }
+
+    .field-label { font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+    .field-value { font-size: 14px; color: var(--text); }
+
+    .status-badge {
+      display: inline-block; font-family: 'IBM Plex Mono', monospace; font-size: 10px;
+      letter-spacing: .1em; text-transform: uppercase; padding: 3px 8px; border: 1px solid;
+    }
+    .status-active   { color: var(--green);  border-color: var(--green);  }
+    .status-pending  { color: var(--amber);  border-color: var(--amber);  }
+    .status-suspended, .status-offboarded { color: var(--error); border-color: var(--error); }
+
+    /* SECTIONS */
+    .section-title {
+      font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 600;
+      letter-spacing: .15em; text-transform: uppercase; color: var(--green);
+      margin-bottom: 16px; display: flex; align-items: center; gap: 10px;
+    }
+    .section-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+    /* REQUEST FORM */
+    .request-form {
+      background: var(--panel); border: 1px solid var(--border);
+      padding: 24px; margin-bottom: 32px;
+      animation: fadeUp .3s .1s ease both; opacity: 0; animation-fill-mode: both;
+    }
+    select, textarea {
+      width: 100%; background: var(--bg); border: 1px solid var(--border);
+      color: var(--text); font-family: 'IBM Plex Mono', monospace; font-size: 12px;
+      padding: 10px 12px; outline: none; transition: border-color .15s; margin-bottom: 16px;
+    }
+    select:focus, textarea:focus { border-color: var(--green); }
+    textarea { resize: vertical; min-height: 80px; font-family: 'IBM Plex Sans', sans-serif; font-size: 13px; }
+    label { display: block; font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+
+    .btn {
+      background: var(--green); color: #000; border: none;
+      font-family: 'IBM Plex Mono', monospace; font-size: 11px; font-weight: 600;
+      letter-spacing: .1em; text-transform: uppercase; padding: 11px 20px;
+      cursor: pointer; transition: background .15s;
+    }
+    .btn:hover { background: var(--green-dim); }
+    .btn:disabled { opacity: .4; cursor: not-allowed; }
+    .btn-sm { padding: 6px 12px; font-size: 10px; }
+
+    /* REQUESTS TABLE */
+    .requests-panel {
+      background: var(--panel); border: 1px solid var(--border);
+      animation: fadeUp .3s .2s ease both; opacity: 0; animation-fill-mode: both;
+    }
+    table { width: 100%; border-collapse: collapse; }
+    th {
+      font-family: 'IBM Plex Mono', monospace; font-size: 10px; letter-spacing: .12em;
+      text-transform: uppercase; color: var(--muted); text-align: left;
+      padding: 12px 16px; border-bottom: 1px solid var(--border);
+    }
+    td { padding: 12px 16px; font-size: 13px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: rgba(0,230,118,.03); }
+
+    .req-type { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--green); }
+    .req-status { font-family: 'IBM Plex Mono', monospace; font-size: 10px; text-transform: uppercase; letter-spacing: .08em; }
+    .rs-open        { color: var(--amber);  }
+    .rs-in_progress { color: var(--green);  }
+    .rs-resolved    { color: var(--muted);  }
+    .rs-rejected    { color: var(--error);  }
+
+    .empty { padding: 32px; text-align: center; font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: var(--muted); }
+    .toast { position: fixed; bottom: 24px; right: 24px; background: var(--green); color: #000; font-family: 'IBM Plex Mono', monospace; font-size: 12px; padding: 12px 20px; font-weight: 600; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 200; }
+    .toast.show { opacity: 1; }
+
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+  </style>
+</head>
+<body>
+  <nav>
+    <div class="nav-logo">Innovatech Portal</div>
+    <div class="nav-user">
+      <span id="navName">—</span>
+      <button class="logout-btn" onclick="logout()">Sign out</button>
+    </div>
+  </nav>
+
+  <main>
+    <div class="page-title">My Dashboard</div>
+    <div class="page-sub">// employee self-service</div>
+
+    <!-- Profile -->
+    <div class="section-title">Profile</div>
+    <div class="profile-card" id="profileCard">
+      <div></div>
+      <div><div class="field-label">Name</div><div class="field-value" id="pName">—</div></div>
+      <div><div class="field-label">Email</div><div class="field-value" id="pEmail">—</div></div>
+      <div><div class="field-label">Department</div><div class="field-value" id="pDept">—</div></div>
+      <div><div class="field-label">Role</div><div class="field-value" id="pRole">—</div></div>
+      <div><div class="field-label">Status</div><div class="field-value" id="pStatus">—</div></div>
+    </div>
+
+    <!-- Submit Request -->
+    <div class="section-title">Submit IT Request</div>
+    <div class="request-form">
+      <label for="reqType">Request type</label>
+      <select id="reqType">
+        <option value="password_reset">Password Reset</option>
+        <option value="software_install">Software Install</option>
+        <option value="access_request">Access Request</option>
+        <option value="other">Other</option>
+      </select>
+      <label for="reqDesc">Description</label>
+      <textarea id="reqDesc" placeholder="Describe what you need..."></textarea>
+      <button class="btn" onclick="submitRequest()">Submit Request</button>
+    </div>
+
+    <!-- My Requests -->
+    <div class="section-title">My Requests</div>
+    <div class="requests-panel">
+      <table>
+        <thead>
+          <tr><th>Type</th><th>Description</th><th>Status</th><th>Date</th></tr>
+        </thead>
+        <tbody id="requestsBody">
+          <tr><td colspan="4" class="empty">Loading...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const API = '/v1';
+    const token = localStorage.getItem('token');
+    const user  = JSON.parse(localStorage.getItem('user') || 'null');
+
+    if (!token || !user) window.location.href = 'index.html';
+    if (user?.is_admin)  window.location.href = 'admin.html';
+
+    document.getElementById('navName').textContent = user?.name || '—';
+
+    async function apiFetch(path, opts = {}) {
+      const res = await fetch(API + path, {
+        ...opts,
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json', ...(opts.headers || {}) },
+      });
+      if (res.status === 401) { logout(); return null; }
+      return res.json();
+    }
+
+    async function loadProfile() {
+      const data = await apiFetch('/employees/me');
+      if (!data) return;
+      document.getElementById('pName').textContent   = data.name;
+      document.getElementById('pEmail').textContent  = data.email;
+      document.getElementById('pDept').textContent   = data.department;
+      document.getElementById('pRole').textContent   = data.role;
+      document.getElementById('pStatus').innerHTML   =
+        `<span class="status-badge status-${data.status}">${data.status}</span>`;
+    }
+
+    async function loadRequests() {
+      const data = await apiFetch('/requests/mine');
+      const tbody = document.getElementById('requestsBody');
+      if (!data || data.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" class="empty">No requests yet.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = data.map(r => `
+        <tr>
+          <td><span class="req-type">${r.type.replace('_', ' ')}</span></td>
+          <td>${r.description || '—'}</td>
+          <td><span class="req-status rs-${r.status}">${r.status.replace('_', ' ')}</span></td>
+          <td style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted)">${new Date(r.created_at).toLocaleDateString()}</td>
+        </tr>`).join('');
+    }
+
+    async function submitRequest() {
+      const type = document.getElementById('reqType').value;
+      const desc = document.getElementById('reqDesc').value.trim();
+      const data = await apiFetch('/requests', {
+        method: 'POST',
+        body: JSON.stringify({ type, description: desc }),
+      });
+      if (data?.request_id) {
+        document.getElementById('reqDesc').value = '';
+        showToast('Request submitted');
+        loadRequests();
+      }
+    }
+
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 2500);
+    }
+
+    function logout() {
+      localStorage.clear();
+      window.location.href = 'index.html';
+    }
+
+    loadProfile();
+    loadRequests();
+  </script>
+</body>
+</html>
