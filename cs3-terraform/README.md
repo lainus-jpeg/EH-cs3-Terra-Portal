@@ -64,7 +64,7 @@ modules/
 | Resource | Approx cost |
 |---|---|
 | EKS cluster | ~$0.10/hr |
-| 2x t3.micro nodes | ~$0.021/hr |
+| 2x t3.small nodes | ~$0.021/hr |
 | RDS db.t3.micro | ~$0.025/hr |
 | NAT Gateway | ~$0.048/hr + data |
 | **Total** | **~$4-5/day** |
