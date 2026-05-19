@@ -6,11 +6,15 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  id-token: write
+  contents: read
+
 env:
-  AWS_REGION:   eu-central-1
-  ECR_BACKEND:  928618307773.dkr.ecr.eu-central-1.amazonaws.com/cs3-dev-backend
-  ECR_FRONTEND: 928618307773.dkr.ecr.eu-central-1.amazonaws.com/cs3-dev-frontend
-  EKS_CLUSTER:  cs3-dev-cluster
+  AWS_REGION:       eu-central-1
+  ECR_BACKEND:      928618307773.dkr.ecr.eu-central-1.amazonaws.com/cs3-dev-backend
+  ECR_FRONTEND:     928618307773.dkr.ecr.eu-central-1.amazonaws.com/cs3-dev-frontend
+  EKS_CLUSTER:      cs3-dev-cluster
 
 jobs:
   # ── JOB 1: Run Tests ────────────────────────────────────────────────────────
@@ -47,9 +51,17 @@ jobs:
           JWT_SECRET: test_secret
           NODE_ENV: test
 
-  # ── JOB 2: Build & Push Backend (only on main, after tests pass) ─────────────
-  build-backend:
-    name: Build & Push Backend
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: cs3-portal/backend/junit.xml
+          if-no-files-found: ignore
+
+  # ── JOB 2: Build & Push to ECR (only if tests pass, only on main) ───────────
+  build:
+    name: Build & Push Images
     runs-on: ubuntu-latest
     needs: test
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
@@ -65,47 +77,28 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Login to Amazon ECR
+        id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Build & push backend image
+      - name: Build & push backend
         working-directory: cs3-portal/backend
         run: |
           docker build -t $ECR_BACKEND:latest -t $ECR_BACKEND:${{ github.sha }} .
           docker push $ECR_BACKEND:latest
           docker push $ECR_BACKEND:${{ github.sha }}
 
-  # ── JOB 3: Build & Push Frontend (only on main, after tests pass) ────────────
-  build-frontend:
-    name: Build & Push Frontend
-    runs-on: ubuntu-latest
-    needs: test
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: arn:aws:iam::928618307773:role/cs3-dev-github-actions-role
-          aws-region: ${{ env.AWS_REGION }}
-
-      - name: Login to Amazon ECR
-        uses: aws-actions/amazon-ecr-login@v2
-
-      - name: Build & push frontend image
+      - name: Build & push frontend
         working-directory: cs3-portal/frontend
         run: |
           docker build -t $ECR_FRONTEND:latest -t $ECR_FRONTEND:${{ github.sha }} .
           docker push $ECR_FRONTEND:latest
           docker push $ECR_FRONTEND:${{ github.sha }}
 
-  # ── JOB 4: Deploy to EKS (after both builds pass) ────────────────────────────
+  # ── JOB 3: Deploy to EKS (only if build passes) ─────────────────────────────
   deploy:
     name: Deploy to EKS
     runs-on: ubuntu-latest
-    needs: [build-backend, build-frontend]
+    needs: build
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
 
     steps:
@@ -128,5 +121,5 @@ jobs:
           kubectl set image deployment/frontend frontend=$ECR_FRONTEND:${{ github.sha }}
           kubectl rollout status deployment/frontend --timeout=120s
 
-      - name: Verify pods
+      - name: Verify deployment
         run: kubectl get pods
