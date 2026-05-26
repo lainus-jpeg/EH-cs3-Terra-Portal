@@ -785,3 +785,48 @@ resource "kubernetes_ingress_v1" "grafana" {
 
   depends_on = [helm_release.monitoring, helm_release.aws_load_balancer_controller]
 }
+
+resource "aws_budgets_budget" "cs3_dev" {
+  name         = "cs3-dev-monthly-budget"
+  budget_type  = "COST"
+  limit_amount = "100"
+  limit_unit   = "USD"
+  time_unit    = "MONTHLY"
+
+  cost_filter {
+    name   = "TagKeyValue"
+    values = ["user:Project$cs3-dev"]
+  }
+
+  notification {
+    comparison_operator        = "GREATER_THAN"
+    threshold                  = 50
+    threshold_type             = "PERCENTAGE"
+    notification_type          = "ACTUAL"
+    subscriber_email_addresses = ["526307@student.fontys.nl"]
+  }
+
+  notification {
+    comparison_operator        = "GREATER_THAN"
+    threshold                  = 80
+    threshold_type             = "PERCENTAGE"
+    notification_type          = "ACTUAL"
+    subscriber_email_addresses = ["526307@student.fontys.nl"]
+  }
+
+  notification {
+    comparison_operator        = "GREATER_THAN"
+    threshold                  = 100
+    threshold_type             = "PERCENTAGE"
+    notification_type          = "ACTUAL"
+    subscriber_email_addresses = ["526307@student.fontys.nl"]
+  }
+
+  notification {
+    comparison_operator        = "GREATER_THAN"
+    threshold                  = 100
+    threshold_type             = "PERCENTAGE"
+    notification_type          = "FORECASTED"
+    subscriber_email_addresses = ["526307@student.fontys.nl"]
+  }
+}
