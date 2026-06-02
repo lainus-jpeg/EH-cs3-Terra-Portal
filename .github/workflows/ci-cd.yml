@@ -12,8 +12,8 @@ permissions:
 
 env:
   AWS_REGION:       eu-central-1
-  ECR_BACKEND:      928618307773.dkr.ecr.eu-central-1.amazonaws.com/cs3-dev-backend
-  ECR_FRONTEND:     928618307773.dkr.ecr.eu-central-1.amazonaws.com/cs3-dev-frontend
+  ECR_BACKEND:      489287384619.dkr.ecr.eu-central-1.amazonaws.com/cs3-dev-backend
+  ECR_FRONTEND:     489287384619.dkr.ecr.eu-central-1.amazonaws.com/cs3-dev-frontend
   EKS_CLUSTER:      cs3-dev-cluster
 
 jobs:
@@ -73,7 +73,7 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: arn:aws:iam::928618307773:role/cs3-dev-github-actions-role
+          role-to-assume: arn:aws:iam::489287384619:role/cs3-dev-github-actions-role
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Login to Amazon ECR
@@ -105,7 +105,7 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: arn:aws:iam::928618307773:role/cs3-dev-github-actions-role
+          role-to-assume: arn:aws:iam::489287384619:role/cs3-dev-github-actions-role
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Update kubeconfig
