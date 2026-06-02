@@ -55,3 +55,4 @@ functions/**/*.zip
 cs3-terraform/functions/offboarding.zip
 cs3-terraform/functions/onboarding.zip
 cs3-terraform/remove-users.ps1
+cs3-terraform/terraform.tfstate.old-account

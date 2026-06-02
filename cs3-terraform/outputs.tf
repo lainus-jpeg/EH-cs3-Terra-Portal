@@ -7,8 +7,7 @@ output "frontend_repository_url" { value = module.ecr.frontend_repository_url }
 output "backend_repository_url"  { value = module.ecr.backend_repository_url }
 
 output "alb_dns_name" {
-  description = "ALB DNS name — visit this URL to access the portal"
-  value       = kubernetes_ingress_v1.main.status[0].load_balancer[0].ingress[0].hostname
+  value = try(kubernetes_ingress_v1.main.status[0].load_balancer[0].ingress[0].hostname, "ALB not yet provisioned")
 }
 
 output "eks_cluster_name" {
